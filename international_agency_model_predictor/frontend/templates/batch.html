@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Batch Upload — IncluhubPredict{% endblock %}
+{% block page_title %}Batch Upload{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start;">
+
+  <!-- Upload Panel -->
+  <div class="card">
+    <div class="card-header"><span class="card-header-label">Upload Batch ZIP</span></div>
+    <div class="card-body" style="padding:20px;">
+      <div class="alert alert-info" style="margin-bottom:16px;font-size:0.72rem;line-height:1.7;">
+        One folder per model containing <code>info.json</code> + photo files.
+        <a href="#" data-bs-toggle="modal" data-bs-target="#fmtModal" style="color:var(--pearl-muted);margin-left:4px;">View format</a>
+      </div>
+      <form id="batch-form">
+        <div style="margin-bottom:14px;">
+          <label class="field-label">Batch Name <span class="field-required">*</span></label>
+          <input class="input" type="text" name="batch_name" required placeholder="e.g. April 2026 Castings" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="field-label">ZIP File <span class="field-required">*</span></label>
+          <div class="zip-zone" id="zip-zone">
+            <input type="file" class="zip-zone-input" id="zip-file" name="zip_file" accept=".zip" required />
+            <div class="zip-zone-face">
+              <i class="bi bi-file-earmark-zip" style="font-size:1.8rem;color:var(--pearl-dim);"></i>
+              <div class="zip-zone-title" id="zip-label">Drop ZIP here or click to select</div>
+              <div class="zip-zone-sub">Maximum 500 MB</div>
+            </div>
+          </div>
+        </div>
+        <div id="batch-alert" class="d-none" style="margin-bottom:12px;"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;" id="batch-btn">
+          <span id="b-spin" class="d-none" style="width:12px;height:12px;border:2px solid rgba(240,235,229,0.3);border-top-color:#F0EBE5;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;"></span>
+          <i class="bi bi-upload" id="b-icon"></i> Upload &amp; Process
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Batch List -->
+  <div class="card">
+    <div class="card-header"><span class="card-header-label">All Batches</span></div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Total</th><th>Done</th><th>Failed</th><th>Status</th><th>Date</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="batch-tbody">
+          {% for b in batches %}
+          <tr id="brow-{{ b.id }}">
+            <td class="text-dim mono">{{ b.id }}</td>
+            <td style="font-weight:600;color:var(--pearl-bright);">{{ b.name }}</td>
+            <td class="mono">{{ b.total }}</td>
+            <td class="mono" style="color:var(--pearl-muted);">{{ b.processed }}</td>
+            <td class="mono" style="color:{% if b.failed > 0 %}var(--red-bright){% else %}var(--pearl-dim){% endif %};">{{ b.failed }}</td>
+            <td><span class="status status-{{ b.status }}" id="bst-{{ b.id }}">{{ b.status }}</span></td>
+            <td class="text-dim" style="font-size:0.72rem;">{{ b.created_at.strftime('%Y-%m-%d') if b.created_at else '' }}</td>
+            <td><button class="btn-del-batch" data-id="{{ b.id }}" title="Delete batch"><i class="bi bi-trash3"></i></button></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--pearl-dim);font-size:0.78rem;">No batches yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Format Modal -->
+<div class="modal fade" id="fmtModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">Batch ZIP Format</span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <pre class="code-block">batch.zip
+├── Sofia_Laurent/
+│   ├── info.json
+│   ├── body_front.jpg
+│   ├── body_side.jpg
+│   ├── face_front.jpg
+│   └── face_profile.jpg
+└── Marco_Rossi/
+    ├── info.json
+    └── ...</pre>
+        <div style="height:14px;"></div>
+        <pre class="code-block">{
+  "name": "Sofia Laurent",
+  "date_of_birth": "2001-03-15",
+  "gender": "female",
+  "height_cm": 176.5,
+  "weight_kg": 58.0,
+  "bust_cm": 85.0,
+  "waist_cm": 62.0,
+  "hips_cm": 88.5
+}</pre>
+        <div style="font-size:0.72rem;color:var(--pearl-dim);margin-top:10px;">Required: name, gender, height_cm. All others optional.</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('click', async e => {
+  const btn = e.target.closest('.btn-del-batch');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!confirm(`Delete batch #${id} and all its submissions?`)) return;
+  btn.disabled = true;
+  const r = await fetch(`/api/batch/${id}`, { method: 'DELETE' });
+  if (r.ok) {
+    document.getElementById(`brow-${id}`)?.remove();
+    const tbody = document.getElementById('batch-tbody');
+    if (!tbody.querySelector('tr[id]')) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--pearl-dim);font-size:0.78rem;">No batches yet</td></tr>';
+    }
+  } else {
+    btn.disabled = false;
+    alert('Delete failed');
+  }
+});
+
+document.getElementById('zip-file').addEventListener('change', function() {
+  document.getElementById('zip-label').textContent = this.files[0] ? this.files[0].name : 'Drop ZIP here or click to select';
+});
+
+document.getElementById('batch-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('batch-btn');
+  const spin = document.getElementById('b-spin');
+  const icon = document.getElementById('b-icon');
+  btn.disabled = true; spin.style.display='inline-block'; icon.classList.add('d-none');
+
+  const fd = new FormData(e.target);
+  try {
+    const resp = await fetch('/api/batch/upload', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (resp.ok) {
+      showBatchAlert('success', `Batch queued (ID: ${data.batch_id}). Processing started.`);
+      pollBatch(data.batch_id);
+      e.target.reset();
+      document.getElementById('zip-label').textContent = 'Drop ZIP here or click to select';
+    } else {
+      showBatchAlert('danger', data.detail || 'Upload failed');
+    }
+  } catch { showBatchAlert('danger', 'Network error'); }
+
+  btn.disabled = false; spin.style.display='none'; icon.classList.remove('d-none');
+});
+
+function showBatchAlert(type, msg) {
+  const el = document.getElementById('batch-alert');
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.classList.remove('d-none');
+}
+
+function pollBatch(id) {
+  const iv = setInterval(async () => {
+    const r = await fetch(`/api/batch/${id}/status`);
+    const d = await r.json();
+    let row = document.getElementById(`brow-${id}`);
+    if (!row) {
+      const tbody = document.getElementById('batch-tbody');
+      row = document.createElement('tr');
+      row.id = `brow-${id}`;
+      row.innerHTML = `<td class="text-dim mono">${d.id}</td><td style="font-weight:600;color:var(--pearl-bright);">${d.name}</td><td class="mono">${d.total}</td><td class="mono" style="color:var(--pearl-muted);">${d.processed}</td><td class="mono">${d.failed}</td><td><span class="status status-${d.status}" id="bst-${id}">${d.status}</span></td><td class="text-dim" style="font-size:0.72rem;">now</td><td><button class="btn-del-batch" data-id="${d.id}" title="Delete batch"><i class="bi bi-trash3"></i></button></td>`;
+      tbody.prepend(row);
+    } else {
+      const st = document.getElementById(`bst-${id}`);
+      if (st) { st.textContent = d.status; st.className = `status status-${d.status}`; }
+      row.querySelectorAll('td')[3].textContent = d.processed;
+      row.querySelectorAll('td')[4].textContent = d.failed;
+    }
+    if (d.status === 'completed' || d.status === 'failed') clearInterval(iv);
+  }, 3000);
+}
+</script>
+{% endblock %}

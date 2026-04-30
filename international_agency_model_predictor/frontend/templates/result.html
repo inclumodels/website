@@ -1,0 +1,582 @@
+{% extends "base.html" %}
+{% block title %}{{ submission.name }} — Assessment{% endblock %}
+{% block page_title %}Model Assessment{% endblock %}
+
+{% macro render_narrative(text) %}
+{% if text %}
+  {% set lines = text.split('\n') %}
+  {% set ns = namespace(first_non_bullet=true) %}
+  {% for line in lines %}
+    {% set stripped = line.strip() %}
+    {% if stripped %}
+      {% if stripped.startswith('• ') or stripped.startswith('- ') or stripped.startswith('* ') %}
+      <div class="llm-bullet">
+        <span class="llm-bullet-icon">—</span>
+        <span>{{ stripped[2:] }}</span>
+      </div>
+      {% elif stripped[0:2] in ['1.','2.','3.','4.','5.','6.','7.','8.','9.'] and stripped[2:3] == ' ' %}
+      <div class="llm-bullet">
+        <span class="llm-bullet-num">{{ stripped[0:1] }}</span>
+        <span>{{ stripped[3:] }}</span>
+      </div>
+      {% else %}
+      <p class="llm-intro">{{ stripped }}</p>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% endmacro %}
+
+{% block content %}
+
+{% if submission.status in ('pending', 'processing') %}
+<div class="processing-state">
+  <div class="spinner spinner-lg" style="margin:0 auto;"></div>
+  <div class="processing-label">Analysing</div>
+  <div class="processing-name">{{ submission.name }}</div>
+  <div style="font-size:0.72rem;color:var(--white-dim);margin-top:8px;">Processing takes 30–90 seconds. Page refreshes automatically.</div>
+</div>
+
+{% elif submission.status == 'failed' %}
+<div class="alert alert-danger">Analysis failed — {{ submission.error_message or 'Unknown error' }}</div>
+<div class="gap-actions">
+  <a href="/" class="btn btn-ghost"><i class="bi bi-arrow-left"></i>Dashboard</a>
+  <form method="post" action="/api/submissions/{{ submission.id }}/reprocess" style="display:inline;">
+    <button type="submit" class="btn btn-ghost">Reprocess</button>
+  </form>
+</div>
+
+{% elif result %}
+{% set r = result %}
+{% set m = r.final_measurements or {} %}
+{% set f = r.facial_metrics or {} %}
+{% set br = r.body_ratios or {} %}
+{% set llm = r.llm_narratives %}
+{% set has_llm = llm and llm.status == 'completed' %}
+
+<!-- ══════════════════ HERO ══════════════════ -->
+<div class="result-hero mb-4">
+
+  <!-- Col 1: Photo -->
+  <div class="rh-photo-col">
+    {% if photos.face_front %}
+    <img src="{{ photos.face_front }}" class="rh-photo" alt="{{ submission.name }}" />
+    {% else %}
+    <div class="rh-photo-placeholder"><i class="bi bi-person"></i></div>
+    {% endif %}
+    <div class="rh-photo-tags">
+      {% if r.face_shape and r.face_shape != 'Unknown' %}
+      <span class="tag tag-gold">{{ r.face_shape }} Face</span>
+      {% endif %}
+      {% if r.body_shape and r.body_shape != 'Unknown' %}
+      <span class="tag tag-dim">{{ r.body_shape }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Col 2: Info + Gauge -->
+  <div class="rh-info-col">
+    <div class="rh-name">{{ submission.name }}</div>
+    <div class="rh-meta">
+      {% if submission.gender %}<span class="rh-pill">{{ submission.gender | capitalize }}</span>{% endif %}
+      {% if r.age_at_submission %}<span class="rh-pill">{{ r.age_at_submission }} yrs</span>{% endif %}
+      {% if submission.nationality %}<span class="rh-pill">{{ submission.nationality }}</span>{% endif %}
+      <span class="rh-pill">{{ submission.height_cm }} cm</span>
+      {% if m.weight_kg %}<span class="rh-pill">{{ m.weight_kg }} kg</span>{% endif %}
+    </div>
+
+    <div class="rh-gauge-row">
+      <!-- SVG Circular Gauge (r=42, circumference=263.9) -->
+      {% set fill = ((r.overall_score or 0) / 100 * 263.9) | round(1) %}
+      <svg class="rh-gauge-svg" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" class="rh-gauge-track"/>
+        <circle cx="50" cy="50" r="42" class="rh-gauge-fill"
+                style="stroke-dasharray:{{ fill }} 263.9; transform-origin:50px 50px; transform:rotate(-90deg);"/>
+        <text x="50" y="45" class="rh-gauge-num">{{ r.overall_score | int }}</text>
+        <text x="50" y="58" class="rh-gauge-sub">Overall</text>
+      </svg>
+
+      <div class="rh-verdict-col">
+        <span class="verdict verdict-{{ r.potential_verdict | lower | replace(' ', '-') }}">{{ r.potential_verdict }}</span>
+        {% if r.fashion_categories %}
+        <div class="rh-best-fit">
+          <div class="rh-best-label">Best Fit For</div>
+          {% for cat in r.fashion_categories[:3] %}
+          <div class="rh-fit-pill {% if loop.index == 1 %}rh-fit-top{% endif %}">
+            <span class="rh-fit-rank">{{ loop.index }}</span>{{ cat.category }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if has_llm and llm.sections.get('executive_summary') %}
+    <div class="rh-ai-quote">
+      <span class="ai-badge"><i class="bi bi-cpu-fill"></i> AI</span>
+      {{ llm.sections.executive_summary }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Col 3: Market Polar Chart -->
+  <div class="rh-chart-col">
+    <div class="rh-chart-title">Market Fit</div>
+    <canvas id="marketChart" width="200" height="200"></canvas>
+    <div class="rh-chart-legend">
+      <div class="rcl-item">
+        <span class="rcl-dot rcl-eu"></span>EU
+        <span class="rcl-score">{{ r.eu_score | int if r.eu_score else '—' }}</span>
+      </div>
+      <div class="rcl-item">
+        <span class="rcl-dot rcl-us"></span>US
+        <span class="rcl-score">{{ r.us_score | int if r.us_score else '—' }}</span>
+      </div>
+      <div class="rcl-item">
+        <span class="rcl-dot rcl-asia"></span>Asia
+        <span class="rcl-score">{{ r.asian_score | int if r.asian_score else '—' }}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!-- END HERO -->
+
+<!-- ══════════════════ FASHION FIT PROFILE ══════════════════ -->
+{% if r.fashion_categories %}
+<div class="section-label">Fashion Fit Profile</div>
+{% if has_llm and llm.sections.get('fashion_categories') %}
+<div class="ai-context-block mb-3">
+  <i class="bi bi-cpu-fill" style="flex-shrink:0;margin-top:3px;"></i>
+  <div class="ai-context-body">{{ render_narrative(llm.sections.fashion_categories) }}</div>
+</div>
+{% endif %}
+<div class="fit-grid mb-4">
+  {% for cat in r.fashion_categories %}
+  <div class="fit-card {% if loop.index == 1 %}fit-gold{% elif loop.index <= 3 %}fit-silver{% endif %}">
+    <div class="fit-rank">{{ loop.index }}</div>
+    <div class="fit-icon">
+      <i class="bi
+        {% if 'High Fashion' in cat.category or 'Editorial' in cat.category %}bi-stars
+        {% elif 'Runway' in cat.category or 'Catwalk' in cat.category %}bi-lightning-charge
+        {% elif 'Commercial' in cat.category or 'Catalogue' in cat.category %}bi-bag
+        {% elif 'Fitness' in cat.category or 'Athletic' in cat.category %}bi-activity
+        {% elif 'Swimwear' in cat.category %}bi-droplet
+        {% elif 'Plus' in cat.category or 'Curve' in cat.category %}bi-heart-fill
+        {% elif 'Petite' in cat.category %}bi-flower1
+        {% elif 'Asian' in cat.category %}bi-globe-asia-australia
+        {% else %}bi-tag{% endif %}"></i>
+    </div>
+    <div class="fit-score">{{ cat.score | int }}</div>
+    <div class="fit-name">{{ cat.category }}</div>
+    <div class="fit-level
+      {% if 'Excellent' in cat.fit %}fl-ex
+      {% elif 'Good' in cat.fit %}fl-good
+      {% elif 'Average' in cat.fit %}fl-avg
+      {% else %}fl-low{% endif %}">{{ cat.fit }}</div>
+    <div class="fit-bar-track">
+      <div class="fit-bar-fill" style="--fw:{{ cat.score }}%;"></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ══════════════════ MARKET ANALYSIS ══════════════════ -->
+<div class="section-label">Market Analysis</div>
+{% if has_llm and llm.sections.get('market_analysis') %}
+<div class="ai-context-block mb-3">
+  <i class="bi bi-cpu-fill" style="flex-shrink:0;margin-top:3px;"></i>
+  <div class="ai-context-body">{{ render_narrative(llm.sections.market_analysis) }}</div>
+</div>
+{% endif %}
+<div class="market-trio mb-4">
+
+  {% set market_data = [
+    ('EU — Paris / Milan',   r.eu_score,    r.eu_breakdown,    r.eu_notes,    'EU (Paris/Milan)',            '🇪🇺'),
+    ('US — New York',        r.us_score,    r.us_breakdown,    r.us_notes,    'US (New York)',               '🇺🇸'),
+    ('Asia — Tokyo / Seoul', r.asian_score, r.asian_breakdown, r.asian_notes, 'Asia (Tokyo/Seoul/Shanghai)', '🌏'),
+  ] %}
+
+  {% for mkt_name, score, breakdown, notes, rec_key, flag in market_data %}
+  <div class="mkt-card {% if score and score >= 65 %}mkt-rec{% endif %}">
+    <div class="mkt-top">
+      <span class="mkt-flag">{{ flag }}</span>
+      <div class="mkt-info">
+        <div class="mkt-name">{{ mkt_name }}</div>
+        {% if r.market_recommendation and r.market_recommendation.get(rec_key) %}
+        <div class="mkt-badge {% if r.market_recommendation[rec_key].recommended %}mb-yes{% else %}mb-no{% endif %}">
+          {{ 'Recommended' if r.market_recommendation[rec_key].recommended else 'Not Recommended' }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="mkt-score-num {{ score_class(score or 0) }}">{{ score | int if score else '—' }}</div>
+    </div>
+    {% if breakdown %}
+    <div class="mkt-bars">
+      {% for k, v in breakdown.items() %}
+      <div class="mkt-bar-group">
+        <div class="mkt-bar-row">
+          <span class="mkt-bar-label">{{ k | replace('_', ' ') | title }}</span>
+          <div class="mkt-bar-track">
+            <div class="mkt-bar-fill
+              {% if v >= 85 %}mbf-hi
+              {% elif v >= 60 %}mbf-mid
+              {% else %}mbf-lo{% endif %}"
+              style="--bw:{{ v }}%;"></div>
+          </div>
+          <span class="mkt-bar-val {% if v >= 85 %}mbv-hi{% elif v < 60 %}mbv-lo{% endif %}">{{ v | int }}</span>
+        </div>
+        {% if notes and notes.get(k) %}
+        <div class="mkt-bar-note">{{ notes[k] }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+</div>
+
+<!-- ══════════════════ BODY & FACE ══════════════════ -->
+<div class="row-2 mb-4">
+
+  <!-- Measurements -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-header-label">Measurements</span>
+      {% if r.body_shape and r.body_shape != 'Unknown' %}
+      <span class="tag tag-gold" style="font-size:0.6rem;">{{ r.body_shape }}</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <table class="meas-table">
+        {% for key, label, unit in [
+          ('height_cm','Height','cm'),('weight_kg','Weight','kg'),('bmi','BMI',''),
+          ('bust_cm','Bust / Chest','cm'),('waist_cm','Waist','cm'),('hips_cm','Hips','cm'),
+          ('inseam_cm','Inseam','cm'),('neck_cm','Neck','cm'),
+          ('shoulder_width_cm','Shoulder Width','cm'),('hip_width_cm','Hip Width','cm'),
+          ('waist_width_cm','Waist Width','cm'),('leg_length_cm','Leg Length','cm'),
+          ('torso_length_cm','Torso Length','cm'),('arm_length_cm','Arm Length','cm'),
+        ] %}
+          {% if m.get(key) %}
+          <tr>
+            <td class="meas-label">{{ label }}</td>
+            <td class="meas-value">
+              {{ m[key] }}{% if unit %} {{ unit }}{% endif %}
+              {% if r.measurement_flags and key in r.measurement_flags %}
+              <span class="meas-flag">VERIFY</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+      </table>
+      {% if r.measurement_flags %}
+      <div class="alert alert-warn" style="margin-top:14px;font-size:0.72rem;">
+        Measurements flagged — cross-check with tape measure.
+      </div>
+      {% endif %}
+    </div>
+    {% if has_llm and llm.sections.get('body_assessment') %}
+    <div class="card-ai-footer">
+      <i class="bi bi-cpu-fill"></i>
+      <div>{{ render_narrative(llm.sections.body_assessment) }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Ratios + Facial -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <div class="card">
+      <div class="card-header"><span class="card-header-label">Body Proportions</span></div>
+      <div class="card-body">
+        {% if br and br.get('shoulder_to_hip') %}
+        <div class="data-grid">
+          {% for key, label in [
+            ('shoulder_to_hip','Shoulder / Hip'),('waist_to_hip','Waist / Hip'),
+            ('leg_to_height','Leg / Height'),('torso_to_height','Torso / Height'),
+            ('waist_to_shoulder','Waist / Shoulder'),('leg_to_torso','Leg / Torso'),
+          ] %}
+            {% if br.get(key) %}
+            <div class="data-cell">
+              <div class="data-cell-value">{{ br[key] }}</div>
+              <div class="data-cell-label">{{ label }}</div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="color:var(--white-dim);font-size:0.78rem;">Body photos required for proportion analysis.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-header-label">Facial Analysis</span>
+        {% if r.face_shape and r.face_shape != 'Unknown' %}
+        <span class="tag tag-gold" style="font-size:0.6rem;">{{ r.face_shape }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if f %}
+        <div class="data-grid">
+          {% for key, label, unit in [
+            ('symmetry_score','Symmetry','%'),('golden_ratio_score','Golden Ratio','%'),
+            ('skin_clarity_score','Skin Clarity','%'),('cheekbone_prominence','Cheekbone',''),
+            ('face_length_width_ratio','Face L/W',''),('eye_spacing_ratio','Eye Spacing',''),
+            ('nose_width_ratio','Nose/Face',''),('jaw_to_forehead_ratio','Jaw/Forehead',''),
+          ] %}
+            {% if f.get(key) is not none %}
+            <div class="data-cell {% if f[key] >= 88 and unit == '%' %}highlight{% endif %}">
+              <div class="data-cell-value">{{ f[key] }}{% if unit %}{{ unit }}{% endif %}</div>
+              <div class="data-cell-label">{{ label }}</div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="color:var(--white-dim);font-size:0.78rem;">No facial data available.</div>
+        {% endif %}
+      </div>
+      {% if has_llm and llm.sections.get('facial_profile') %}
+      <div class="card-ai-footer">
+        <i class="bi bi-cpu-fill"></i>
+        <div>{{ render_narrative(llm.sections.facial_profile) }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ STRENGTHS & AREAS ══════════════════ -->
+<div class="row-2 mb-4">
+  <div class="card">
+    <div class="card-header"><span class="card-header-label">Strengths</span></div>
+    <div class="card-body">
+      <div class="itag-cloud">
+        {% for s in r.strengths %}
+        <span class="itag itag-strength">{{ s }}</span>
+        {% else %}
+        <span style="color:var(--white-dim);font-size:0.78rem;">None flagged.</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-header-label">Areas to Develop</span></div>
+    <div class="card-body">
+      <div class="itag-cloud">
+        {% for imp in r.improvements %}
+        <span class="itag itag-improve">{{ imp }}</span>
+        {% else %}
+        <span style="color:var(--white-dim);font-size:0.78rem;">None flagged.</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ PHOTOS ══════════════════ -->
+{% if photos %}
+<div class="section-label">Submitted Photos</div>
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="photo-gallery">
+      {% for ptype, url in photos.items() %}
+      <div class="gallery-item">
+        <img src="{{ url }}" class="gallery-photo" alt="{{ ptype }}" />
+        <div class="gallery-label">{{ ptype | replace('_', ' ') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ══════════════════ AI DEEP ASSESSMENT ══════════════════ -->
+<div class="section-label">AI Assessment</div>
+<div class="card mb-4" id="llm-section">
+  <div class="card-header" style="justify-content:space-between;">
+    <span class="card-header-label">
+      {% if has_llm %}Deep Analysis — Agency Report{% else %}Natural Language Assessment{% endif %}
+    </span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      {% if has_llm %}
+      <span style="font-size:0.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold-dim);">
+        <i class="bi bi-cpu-fill"></i> {{ llm.model }}
+      </span>
+      {% endif %}
+      <button class="btn btn-ghost btn-sm" id="regen-btn"
+              onclick="regenLLM({{ submission.id }})">
+        <i class="bi bi-arrow-clockwise"></i>
+        {% if has_llm %}Regenerate{% else %}Generate{% endif %}
+      </button>
+    </div>
+  </div>
+  <div class="card-body" style="padding:0;">
+    {% if has_llm %}
+      {% for key, label in [
+        ('executive_summary',     'Executive Summary'),
+        ('agency_recommendations','Agency Recommendations'),
+        ('development_notes',     'Development Notes'),
+      ] %}
+        {% if llm.sections.get(key) %}
+        <div class="llm-block">
+          <div class="llm-block-label">{{ label }}</div>
+          <div class="llm-block-body">
+            {{ render_narrative(llm.sections[key]) }}
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+    <div class="llm-offline">
+      <i class="bi bi-cpu" style="font-size:2rem;color:var(--gold-dim);"></i>
+      <div class="llm-offline-title">AI Analysis Not Generated</div>
+      <div class="llm-offline-text">Requires Ollama running locally with a supported model.</div>
+      <div class="llm-setup-steps">
+        <div class="llm-step"><span class="llm-step-num">1</span><div><strong>Download Ollama</strong><br><span>ollama.com — free, runs locally</span></div></div>
+        <div class="llm-step"><span class="llm-step-num">2</span><div><strong>Pull a model</strong><br><code>ollama pull llama3.2</code></div></div>
+        <div class="llm-step"><span class="llm-step-num">3</span><div><strong>Click Generate above</strong><br><span>Ready in ~30 seconds</span></div></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="gap-actions">
+  <a href="/" class="btn btn-ghost"><i class="bi bi-arrow-left"></i>Dashboard</a>
+  <button onclick="window.print()" class="btn btn-ghost"><i class="bi bi-printer"></i>Print</button>
+  <form method="post" action="/api/submissions/{{ submission.id }}/reprocess" style="display:inline;">
+    <button type="submit" class="btn btn-ghost">Reprocess</button>
+  </form>
+  <button class="btn btn-ghost" style="color:rgba(220,80,80,0.8);margin-left:auto;"
+          onclick="deleteAndRedirect({{ submission.id }}, '{{ submission.name }}')">
+    <i class="bi bi-trash"></i> Delete
+  </button>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if submission.status in ('pending', 'processing') %}
+<script>setTimeout(() => location.reload(), 5000);</script>
+{% endif %}
+
+{% if result %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── Polar area market chart ──
+const marketCtx = document.getElementById('marketChart');
+if (marketCtx) {
+  new Chart(marketCtx, {
+    type: 'polarArea',
+    data: {
+      labels: ['EU — Paris/Milan', 'US — New York', 'Asia'],
+      datasets: [{
+        data: [{{ result.eu_score or 0 }}, {{ result.us_score or 0 }}, {{ result.asian_score or 0 }}],
+        backgroundColor: [
+          'rgba(201,169,110,0.50)',
+          'rgba(201,169,110,0.28)',
+          'rgba(201,169,110,0.13)',
+        ],
+        borderColor: [
+          'rgba(201,169,110,0.90)',
+          'rgba(201,169,110,0.60)',
+          'rgba(201,169,110,0.35)',
+        ],
+        borderWidth: 1.5,
+      }]
+    },
+    options: {
+      responsive: false,
+      animation: { duration: 1100, easing: 'easeOutQuart' },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          ticks: { display: false },
+          grid: { color: 'rgba(201,169,110,0.10)' },
+          pointLabels: { display: false },
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(15,2,2,0.93)',
+          borderColor: 'rgba(201,169,110,0.4)',
+          borderWidth: 1,
+          titleColor: '#C9A96E',
+          bodyColor: '#F5F0EB',
+          callbacks: { label: ctx => ` ${ctx.formattedValue} / 100` }
+        }
+      }
+    }
+  });
+}
+
+// ── Animate breakdown bars on scroll ──
+const barObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.querySelectorAll('.mkt-bar-fill').forEach(el => {
+      el.style.width = el.style.getPropertyValue('--bw') || '0%';
+    });
+    e.target.querySelectorAll('.fit-bar-fill').forEach(el => {
+      el.style.width = el.style.getPropertyValue('--fw') || '0%';
+    });
+    barObs.unobserve(e.target);
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.market-trio, .fit-grid').forEach(el => barObs.observe(el));
+
+// Trigger bars already in view
+setTimeout(() => {
+  document.querySelectorAll('.mkt-bar-fill').forEach(el => {
+    el.style.width = el.style.getPropertyValue('--bw') || '0%';
+  });
+  document.querySelectorAll('.fit-bar-fill').forEach(el => {
+    el.style.width = el.style.getPropertyValue('--fw') || '0%';
+  });
+}, 350);
+
+// ── LLM Regenerate ──
+async function regenLLM(submissionId) {
+  const btn = document.getElementById('regen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin-ring"></span> Generating…';
+  try {
+    const resp = await fetch(`/api/submissions/${submissionId}/regenerate-llm`, { method: 'POST' });
+    if (resp.ok) {
+      const poll = setInterval(async () => {
+        const data = await (await fetch(`/api/submissions/${submissionId}`)).json();
+        if (data.result?.llm_narratives?.status === 'completed') {
+          clearInterval(poll);
+          location.reload();
+        }
+      }, 3000);
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Generate';
+    }
+  } catch {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Generate';
+  }
+}
+
+async function deleteAndRedirect(id, name) {
+  if (!confirm(`Delete submission for "${name}"? This is permanent.`)) return;
+  const resp = await fetch(`/api/submissions/${id}`, { method: 'DELETE' });
+  if (resp.ok) window.location.href = '/';
+  else alert('Delete failed — try again');
+}
+</script>
+{% endif %}
+{% endblock %}

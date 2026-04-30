@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <radialGradient id="ng" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C9A96E" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#C9A96E" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="nf">
+      <feGaussianBlur stdDeviation="1.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- background glow -->
+  <circle cx="24" cy="24" r="22" fill="url(#ng)"/>
+
+  <!-- connection lines -->
+  <line x1="24" y1="8"  x2="10" y2="20" stroke="#C9A96E" stroke-width="0.9" stroke-opacity="0.40"/>
+  <line x1="24" y1="8"  x2="38" y2="20" stroke="#C9A96E" stroke-width="0.9" stroke-opacity="0.40"/>
+  <line x1="10" y1="20" x2="14" y2="36" stroke="#C9A96E" stroke-width="0.9" stroke-opacity="0.40"/>
+  <line x1="38" y1="20" x2="34" y2="36" stroke="#C9A96E" stroke-width="0.9" stroke-opacity="0.40"/>
+  <line x1="14" y1="36" x2="34" y2="36" stroke="#C9A96E" stroke-width="0.7" stroke-opacity="0.28"/>
+  <line x1="10" y1="20" x2="38" y2="20" stroke="#C9A96E" stroke-width="0.7" stroke-opacity="0.20"/>
+  <line x1="24" y1="8"  x2="24" y2="26" stroke="#C9A96E" stroke-width="0.6" stroke-opacity="0.22"/>
+  <line x1="10" y1="20" x2="34" y2="36" stroke="#C9A96E" stroke-width="0.5" stroke-opacity="0.14"/>
+  <line x1="38" y1="20" x2="14" y2="36" stroke="#C9A96E" stroke-width="0.5" stroke-opacity="0.14"/>
+  <line x1="24" y1="26" x2="14" y2="36" stroke="#C9A96E" stroke-width="0.5" stroke-opacity="0.16"/>
+  <line x1="24" y1="26" x2="34" y2="36" stroke="#C9A96E" stroke-width="0.5" stroke-opacity="0.16"/>
+
+  <!-- outer nodes -->
+  <circle cx="24" cy="8"  r="3.2" fill="#C9A96E" filter="url(#nf)"/>
+  <circle cx="10" cy="20" r="2.6" fill="#C9A96E" opacity="0.80"/>
+  <circle cx="38" cy="20" r="2.6" fill="#C9A96E" opacity="0.80"/>
+  <circle cx="14" cy="36" r="2.2" fill="#C9A96E" opacity="0.65"/>
+  <circle cx="34" cy="36" r="2.2" fill="#C9A96E" opacity="0.65"/>
+
+  <!-- centre hub node -->
+  <circle cx="24" cy="26" r="4.5" fill="rgba(201,169,110,0.12)" stroke="#C9A96E" stroke-width="1.1"/>
+  <circle cx="24" cy="26" r="2"   fill="#C9A96E" filter="url(#nf)"/>
+</svg>

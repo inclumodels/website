@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}New Submission — IncluhubPredict{% endblock %}
+{% block page_title %}New Submission{% endblock %}
+
+{% block content %}
+<div style="max-width:760px;">
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step-item active" id="si-1"><div class="step-num">1</div><div class="step-text">Personal</div></div>
+    <div class="step-line"></div>
+    <div class="step-item" id="si-2"><div class="step-num">2</div><div class="step-text">Measurements</div></div>
+    <div class="step-line"></div>
+    <div class="step-item" id="si-3"><div class="step-num">3</div><div class="step-text">Photos</div></div>
+    <div class="step-line"></div>
+    <div class="step-item" id="si-4"><div class="step-num">4</div><div class="step-text">Submit</div></div>
+  </div>
+
+  <form id="submit-form" enctype="multipart/form-data">
+
+    <!-- Step 1 -->
+    <div class="card p-0" id="step-1" style="padding:0;">
+      <div class="card-header"><span class="card-header-label">Personal Information</span></div>
+      <div class="card-body" style="padding:24px;">
+        <div class="input-group" style="margin-bottom:16px;">
+          <div>
+            <label class="field-label">Full Name <span class="field-required">*</span></label>
+            <input class="input" type="text" name="name" required placeholder="e.g. Sofia Laurent" />
+          </div>
+          <div>
+            <label class="field-label">Gender <span class="field-required">*</span></label>
+            <select class="input" name="gender" required>
+              <option value="">Select</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group" style="margin-bottom:16px;">
+          <div>
+            <label class="field-label">Date of Birth</label>
+            <input class="input" type="date" name="date_of_birth" />
+          </div>
+          <div>
+            <label class="field-label">Nationality</label>
+            <input class="input" type="text" name="nationality" placeholder="e.g. French" />
+          </div>
+        </div>
+        <div class="input-group">
+          <div>
+            <label class="field-label">Hair Color</label>
+            <input class="input" type="text" name="hair_color" placeholder="e.g. Dark Brown" />
+          </div>
+          <div>
+            <label class="field-label">Eye Color</label>
+            <input class="input" type="text" name="eye_color" placeholder="e.g. Hazel" />
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:24px;">
+          <button type="button" class="btn btn-primary" onclick="nextStep(1)">Continue <i class="bi bi-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="card d-none" id="step-2">
+      <div class="card-header"><span class="card-header-label">Self-Reported Measurements</span></div>
+      <div class="card-body" style="padding:24px;">
+        <div style="font-size:0.72rem;color:var(--pearl-dim);margin-bottom:20px;line-height:1.6;">
+          Measure with a tape measure, no clothing. Values are cross-checked against photo analysis. Height is required for calibration.
+        </div>
+        <div class="input-group-3" style="margin-bottom:16px;">
+          <div>
+            <label class="field-label">Height (cm) <span class="field-required">*</span></label>
+            <input class="input" type="number" name="height_cm" step="0.1" required placeholder="175.0" />
+          </div>
+          <div>
+            <label class="field-label">Weight (kg)</label>
+            <input class="input" type="number" name="weight_kg" step="0.1" placeholder="60.0" />
+          </div>
+          <div>
+            <label class="field-label">Shoe Size (EU)</label>
+            <input class="input" type="number" name="shoe_size_eu" step="0.5" placeholder="39" />
+          </div>
+        </div>
+        <div class="input-group-3" style="margin-bottom:16px;">
+          <div>
+            <label class="field-label">Bust / Chest (cm)</label>
+            <input class="input" type="number" name="bust_cm" step="0.5" placeholder="86.0" />
+          </div>
+          <div>
+            <label class="field-label">Waist (cm)</label>
+            <input class="input" type="number" name="waist_cm" step="0.5" placeholder="62.0" />
+          </div>
+          <div>
+            <label class="field-label">Hips (cm)</label>
+            <input class="input" type="number" name="hips_cm" step="0.5" placeholder="89.0" />
+          </div>
+        </div>
+        <div class="input-group-3" style="margin-bottom:16px;">
+          <div>
+            <label class="field-label">Inseam (cm)</label>
+            <input class="input" type="number" name="inseam_cm" step="0.5" placeholder="80.0" />
+          </div>
+          <div>
+            <label class="field-label">Neck (cm)</label>
+            <input class="input" type="number" name="neck_cm" step="0.5" placeholder="34.0" />
+          </div>
+          <div>
+            <label class="field-label">Dress / Suit Size</label>
+            <input class="input" type="text" name="dress_size" placeholder="e.g. 8 / S / 36" />
+          </div>
+        </div>
+        <label class="check-label">
+          <input type="checkbox" name="has_implants" value="true" />
+          Breast implants or significant body modifications
+        </label>
+        <div style="display:flex;justify-content:space-between;margin-top:24px;">
+          <button type="button" class="btn btn-ghost" onclick="prevStep(2)"><i class="bi bi-arrow-left"></i> Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextStep(2)">Continue <i class="bi bi-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="card d-none" id="step-3">
+      <div class="card-header"><span class="card-header-label">Photo Upload</span></div>
+      <div class="card-body" style="padding:24px;">
+        <div style="font-size:0.72rem;color:var(--pearl-dim);margin-bottom:20px;line-height:1.6;">
+          Minimum 1000px resolution. Portrait orientation for body shots. Plain background, even lighting, no blur. Accepted: JPG, PNG, WEBP.
+        </div>
+        <div class="photo-grid">
+          {% set slots = [
+            ('body_front',   'Full Body Front',    'Standing straight, arms out',  True),
+            ('body_side',    'Full Body Side',     '90° profile',                  True),
+            ('face_front',   'Face — Front',       'Neutral, hair back',           True),
+            ('face_profile', 'Face — 3/4 Profile', '45° turn, even light',         True),
+            ('swimwear_front','Swimwear Front',    'Optional',                     False),
+            ('swimwear_side', 'Swimwear Side',     'Optional',                     False),
+          ] %}
+          {% for name, label, hint, req in slots %}
+          <div class="photo-slot" id="slot-{{ name }}">
+            <input type="file" class="photo-slot-input" id="inp-{{ name }}" name="{{ name }}"
+                   accept="image/jpeg,image/png,image/webp"
+                   {% if req %}required{% endif %}
+                   onchange="previewPhoto('{{ name }}')" />
+            <div class="photo-slot-face" id="face-{{ name }}">
+              <div class="photo-check"><i class="bi bi-image" id="icon-{{ name }}"></i></div>
+              <div class="photo-slot-title">{{ label }}</div>
+              <div class="photo-slot-hint">{{ hint }}</div>
+              <div class="photo-slot-tag">
+                <span class="tag {% if req %}tag-red{% else %}tag-dim{% endif %}">{% if req %}Required{% else %}Optional{% endif %}</span>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px;">
+          <button type="button" class="btn btn-ghost" onclick="prevStep(3)"><i class="bi bi-arrow-left"></i> Back</button>
+          <button type="button" class="btn btn-primary" onclick="nextStep(3)">Review <i class="bi bi-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="card d-none" id="step-4">
+      <div class="card-header"><span class="card-header-label">Review & Submit</span></div>
+      <div class="card-body" style="padding:24px;">
+        <div id="review-content" class="review-grid" style="margin-bottom:20px;"></div>
+        <div id="submit-alert" class="d-none"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px;">
+          <button type="button" class="btn btn-ghost" onclick="prevStep(4)"><i class="bi bi-arrow-left"></i> Back</button>
+          <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+            <span id="sub-spin" class="d-none" style="width:14px;height:14px;border:2px solid rgba(240,235,229,0.3);border-top-color:#F0EBE5;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;"></span>
+            <i class="bi bi-send" id="sub-icon"></i> Submit for Analysis
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function nextStep(from) {
+  if (!validateStep(from)) return;
+  showStep(from + 1);
+  if (from + 1 === 4) buildReview();
+}
+function prevStep(from) { showStep(from - 1); }
+
+function showStep(n) {
+  document.querySelectorAll('[id^="step-"]').forEach((el, i) => {
+    const num = parseInt(el.id.replace('step-',''));
+    if (!isNaN(num)) el.classList.toggle('d-none', num !== n);
+  });
+  document.querySelectorAll('[id^="si-"]').forEach((el, i) => {
+    el.classList.remove('active','done');
+    const num = i + 1;
+    if (num === n) el.classList.add('active');
+    if (num < n)  el.classList.add('done');
+  });
+}
+
+function validateStep(n) {
+  const step = document.getElementById(`step-${n}`);
+  let ok = true;
+  step.querySelectorAll('[required]').forEach(el => {
+    if (!el.value.trim()) { el.classList.add('is-invalid'); if (ok) el.focus(); ok = false; }
+    else el.classList.remove('is-invalid');
+  });
+  return ok;
+}
+
+function previewPhoto(name) {
+  const inp = document.getElementById(`inp-${name}`);
+  if (inp.files && inp.files[0]) {
+    const face = document.getElementById(`face-${name}`);
+    const icon = document.getElementById(`icon-${name}`);
+    const reader = new FileReader();
+    reader.onload = e => {
+      face.style.backgroundImage = `url(${e.target.result})`;
+      face.style.backgroundSize = 'cover';
+      face.style.backgroundPosition = 'center';
+      icon.className = 'bi bi-check2';
+      icon.style.color = 'var(--pearl-bright)';
+      document.getElementById(`slot-${name}`).classList.add('filled');
+    };
+    reader.readAsDataURL(inp.files[0]);
+  }
+}
+
+function buildReview() {
+  const fd = new FormData(document.getElementById('submit-form'));
+  const fields = [
+    ['name','Name'],['gender','Gender'],['date_of_birth','DOB'],['nationality','Nationality'],
+    ['height_cm','Height cm'],['weight_kg','Weight kg'],['bust_cm','Bust/Chest'],
+    ['waist_cm','Waist'],['hips_cm','Hips'],['shoe_size_eu','Shoe EU'],
+    ['hair_color','Hair'],['eye_color','Eyes'],
+  ];
+  let html = '';
+  for (const [k, label] of fields) {
+    const v = fd.get(k);
+    if (v) html += `<div class="review-cell"><div class="review-cell-label">${label}</div><div class="review-cell-value">${v}</div></div>`;
+  }
+  const photoCount = ['body_front','body_side','face_front','face_profile','swimwear_front','swimwear_side']
+    .filter(p => { const el = document.getElementById(`inp-${p}`); return el && el.files && el.files.length; }).length;
+  html += `<div class="review-cell" style="grid-column:span 2;"><div class="review-cell-label">Photos Ready</div><div class="review-cell-value">${photoCount} files</div></div>`;
+  document.getElementById('review-content').innerHTML = html;
+}
+
+document.getElementById('submit-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  const spin = document.getElementById('sub-spin');
+  const icon = document.getElementById('sub-icon');
+  btn.disabled = true;
+  spin.classList.remove('d-none');
+  icon.classList.add('d-none');
+
+  const fd = new FormData(e.target);
+  if (!fd.get('has_implants')) fd.set('has_implants', 'false');
+
+  try {
+    const resp = await fetch('/api/submit', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (resp.ok) {
+      window.location.href = `/result/${data.submission_id}`;
+    } else {
+      showAlert('danger', data.detail || 'Submission failed');
+      btn.disabled = false; spin.classList.add('d-none'); icon.classList.remove('d-none');
+    }
+  } catch {
+    showAlert('danger', 'Network error — try again');
+    btn.disabled = false; spin.classList.add('d-none'); icon.classList.remove('d-none');
+  }
+});
+
+function showAlert(type, msg) {
+  const el = document.getElementById('submit-alert');
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.classList.remove('d-none');
+}
+</script>
+{% endblock %}

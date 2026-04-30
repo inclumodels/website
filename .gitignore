@@ -1,0 +1,50 @@
+# ---- Node / frontend ----
+**/node_modules/
+**/.vite/
+**/dist/
+**/dist-ssr/
+*.local
+
+# ---- Logs ----
+logs
+*.log
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ---- Python ----
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv/
+**/venv/
+
+# ---- Local databases / generated data ----
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# ---- Generated uploads / test artifacts ----
+international_agency_model_predictor/uploads/
+international_agency_model_predictor/data/
+international_agency_model_predictor/test_batch*/
+international_agency_model_predictor/test_subject/
+
+# ---- Archives / exports ----
+*.zip
+
+# ---- Secrets ----
+.env
+.env.*
+credentials*.json

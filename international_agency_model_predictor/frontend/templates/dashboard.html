@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — IncluhubPredict{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card accent-left">
+    <div class="stat-num">{{ stats.total }}</div>
+    <div class="stat-label">Total Submissions</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ stats.completed }}</div>
+    <div class="stat-label">Completed</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ stats.pending }}</div>
+    <div class="stat-label">In Queue</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ stats.failed }}</div>
+    <div class="stat-label">Failed</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-num">{{ stats.batches }}</div>
+    <div class="stat-label">Batches</div>
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="gap-actions">
+  <a href="/submit" class="btn btn-primary"><i class="bi bi-person-plus"></i>New Submission</a>
+  <a href="/batch" class="btn btn-ghost"><i class="bi bi-layers"></i>Batch Upload</a>
+  <button class="btn btn-test" id="test-btn" onclick="runTest()">
+    <span id="test-spinner" class="d-none" style="display:inline-block;width:12px;height:12px;border:2px solid #4A4540;border-top-color:#CC1A28;border-radius:50%;animation:spin 0.7s linear infinite;"></span>
+    <i class="bi bi-play-circle" id="test-icon"></i>Run Pipeline Test
+  </button>
+</div>
+<div id="test-alert" class="d-none"></div>
+
+<!-- Submissions Table -->
+<div class="card mb-4">
+  <div class="card-header">
+    <span class="card-header-label">Recent Submissions</span>
+    <span style="font-size:0.68rem;color:var(--pearl-dim)">Last 15</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Gender</th>
+          <th>Height</th>
+          <th>EU</th>
+          <th>US</th>
+          <th>Asia</th>
+          <th>Overall</th>
+          <th>Verdict</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in recent_submissions %}
+        <tr>
+          <td class="text-dim mono">{{ s.id }}</td>
+          <td style="color:var(--pearl-bright);font-weight:600;">{{ s.name }}</td>
+          <td class="text-muted-c">{{ s.gender | capitalize }}</td>
+          <td class="mono">{{ s.height_cm }} cm</td>
+          <td class="mono">{% if s.eu_score is not none %}{{ s.eu_score }}{% else %}—{% endif %}</td>
+          <td class="mono">{% if s.us_score is not none %}{{ s.us_score }}{% else %}—{% endif %}</td>
+          <td class="mono">{% if s.asian_score is not none %}{{ s.asian_score }}{% else %}—{% endif %}</td>
+          <td class="mono" style="color:var(--pearl-bright);font-weight:700;">
+            {% if s.eu_score is not none %}
+              {{ [s.eu_score, s.us_score, s.asian_score] | max | int }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if s.verdict %}
+              <span class="verdict verdict-{{ s.verdict | lower | replace(' ', '-') }}">{{ s.verdict }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td><span class="status status-{{ s.status }}">{{ s.status }}</span></td>
+          <td class="text-dim" style="font-size:0.72rem;">{{ s.created_at }}</td>
+          <td style="display:flex;gap:6px;align-items:center;">
+            {% if s.status == 'completed' %}
+              <a href="/result/{{ s.id }}" class="btn btn-ghost btn-sm">View</a>
+            {% endif %}
+            <button class="btn btn-ghost btn-sm" style="color:var(--red-bright);border-color:transparent;"
+                    onclick="deleteSubmission({{ s.id }}, '{{ s.name }}', this)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="12" style="text-align:center;padding:40px;color:var(--pearl-dim);font-size:0.78rem;letter-spacing:0.5px;">
+            No submissions yet — <a href="/submit">create the first one</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Batches -->
+{% if batches %}
+<div class="card">
+  <div class="card-header">
+    <span class="card-header-label">Recent Batches</span>
+  </div>
+  <div class="card-body" style="padding:0 20px;">
+    {% for b in batches %}
+    <div class="batch-row">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div class="batch-name">{{ b.name }}</div>
+          <div class="batch-meta">
+            {{ b.created_at.strftime('%Y-%m-%d') if b.created_at else '' }} &nbsp;·&nbsp;
+            <span class="batch-counts">{{ b.processed }}/{{ b.total }} processed</span>
+            {% if b.failed > 0 %}&nbsp;·&nbsp;<span style="color:var(--red-bright);">{{ b.failed }} failed</span>{% endif %}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="status status-{{ b.status }}">{{ b.status }}</span>
+          <a href="/batch" class="btn btn-ghost btn-sm">Details</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if stats.pending > 0 %}
+setTimeout(() => location.reload(), 8000);
+{% endif %}
+
+async function deleteSubmission(id, name, btn) {
+  if (!confirm(`Delete submission for "${name}"?\n\nThis removes all photos and analysis data permanently.`)) return;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass"></i>';
+  try {
+    const resp = await fetch(`/api/submissions/${id}`, { method: 'DELETE' });
+    if (resp.ok) {
+      const row = btn.closest('tr');
+      row.style.transition = 'opacity 0.3s ease';
+      row.style.opacity = '0';
+      setTimeout(() => row.remove(), 300);
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-trash"></i>';
+      alert('Delete failed — try again');
+    }
+  } catch {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-trash"></i>';
+    alert('Network error');
+  }
+}
+
+async function runTest() {
+  const btn = document.getElementById('test-btn');
+  const spinner = document.getElementById('test-spinner');
+  const icon = document.getElementById('test-icon');
+  const alertEl = document.getElementById('test-alert');
+
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+  icon.classList.add('d-none');
+  alertEl.className = 'alert alert-info';
+  alertEl.innerHTML = 'Loading Lucky Blue Smith test data and queuing analysis...';
+  alertEl.classList.remove('d-none');
+
+  try {
+    const resp = await fetch('/api/test/run', { method: 'POST' });
+    const data = await resp.json();
+    if (resp.ok) {
+      alertEl.className = 'alert alert-success';
+      alertEl.innerHTML = `Test queued &mdash; <strong>${data.model}</strong> &mdash; Photos: ${data.photos_loaded.join(', ') || 'none (self-reported only)'}. Redirecting in 3s...`;
+      setTimeout(() => window.location.href = `/result/${data.submission_id}`, 3000);
+    } else {
+      alertEl.className = 'alert alert-danger';
+      alertEl.innerHTML = data.detail || 'Failed to run test';
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      icon.classList.remove('d-none');
+    }
+  } catch {
+    alertEl.className = 'alert alert-danger';
+    alertEl.innerHTML = 'Network error — is the server running?';
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    icon.classList.remove('d-none');
+  }
+}
+</script>
+{% endblock %}

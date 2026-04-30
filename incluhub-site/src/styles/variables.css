@@ -1,0 +1,54 @@
+:root {
+  /* Backgrounds — transparent so texture bleeds through */
+  --color-bg:           transparent;
+  --color-bg-2:         rgba(4, 2, 1, 0.45);
+  --color-surface:      rgba(4, 2, 1, 0.55);
+  --color-overlay-mid:  rgba(6, 3, 2, 0.6);
+  --color-overlay-deep: rgba(4, 2, 1, 0.78);
+
+  /* Gold — warm amber matching the screenshots */
+  --color-gold:         #C8A86A;
+  --color-gold-light:   #E2CFA0;
+  --color-gold-dim:     rgba(200, 168, 106, 0.28);
+  --color-gold-line:    rgba(200, 168, 106, 0.16);
+
+  /* Ivory / cream */
+  --color-ivory:        #F5F0E8;
+  --color-ivory-2:      #D6CFC4;
+  --color-ivory-3:      #8A8278;
+  --color-ivory-4:      rgba(245, 240, 232, 0.05);
+
+  /* Burgundy — from the texture / CTA */
+  --color-burgundy:     #7A1728;
+  --color-burgundy-dim: rgba(122, 23, 40, 0.35);
+
+  /* Silver */
+  --color-silver:       #C4C0B8;
+
+  /* Typography */
+  --font-display: 'Cormorant Garamond', 'Garamond', Georgia, serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.45, 0, 0.55, 1);
+
+  /* Layout */
+  --section-pad-y:  140px;
+  --container-max:  1320px;
+  --nav-h:          72px;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --section-pad-y: 110px;
+    --nav-h: 68px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --section-pad-y: 84px;
+    --nav-h: 64px;
+  }
+}
