@@ -27,7 +27,7 @@
 
   /* Typography */
   --font-display: 'Sue Ellen Francisco', 'Cormorant Garamond', Georgia, serif;
-  --font-body:    'Inter', system-ui, sans-serif;
+  --font-body:    'Cormorant Garamond', Georgia, serif;
 
   /* Motion */
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
