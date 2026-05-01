@@ -8,7 +8,7 @@ const menuItems = [
   { num: '03', label: 'Creators',                   href: '/creators',    route: true  },
   { num: '04', label: 'Blogs',                      href: '/blogs',       route: true  },
   { num: '05', label: 'Join International Education', href: '/join-agency', route: true  },
-  { num: '06', label: 'Contact',                    href: '#contact',     route: false },
+  { num: '06', label: 'Contact',                    href: '/#contact',    route: true  },
 ]
 
 function HamburgerIcon({ open }) {
@@ -121,31 +121,14 @@ export default function Navbar() {
             initial={{ clipPath: 'inset(0 0 100% 0)' }}
             animate={{ clipPath: 'inset(0 0 0% 0)' }}
             exit={{ clipPath: 'inset(0 0 100% 0)' }}
-            transition={{ duration: 0.75, ease: [0.76, 0, 0.24, 1] }}
+            transition={{ duration: 0.9, ease: [0.76, 0, 0.24, 1] }}
             style={{
               position: 'fixed', inset: 0, zIndex: 200,
-              backgroundColor: '#0A0604',
-              backgroundImage: "url('/bg-texture.jpg')",
-              backgroundSize: 'cover', backgroundPosition: 'center',
+              backgroundColor: '#060303',
               willChange: 'clip-path',
               overflowY: 'auto',
             }}
           >
-            {/* Overlay tint */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(4, 2, 1, 0.86)',
-              pointerEvents: 'none',
-            }} />
-
-            {/* Ambient glow */}
-            <div style={{
-              position: 'absolute', top: '40%', left: '30%',
-              width: 600, height: 600, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(122,23,40,0.12) 0%, transparent 65%)',
-              filter: 'blur(80px)',
-              pointerEvents: 'none', zIndex: 0,
-            }} />
 
             {/* Content */}
             <div style={{
