@@ -1,21 +1,18 @@
 /**
- * Local model provider adapter (Ollama).
- * Talks directly to a locally running Ollama instance — no API key needed.
+ * Local/Ollama provider adapter.
+ * Routes through /api/chat edge function so the Ollama URL stays server-side.
  */
 export async function streamLocal({ messages, systemPrompt, config, onChunk, onDone }) {
-  const payload = {
-    model: config.model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      ...messages,
-    ],
-    stream: true,
-  }
-
-  const res = await fetch(`${config.baseUrl}/api/chat`, {
+  const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      provider: 'local',
+      model: config.model,
+      maxTokens: config.maxTokens,
+      systemPrompt,
+      messages,
+    }),
   })
 
   if (!res.ok) throw new Error(`Local model error: ${res.status}`)
@@ -27,15 +24,9 @@ export async function streamLocal({ messages, systemPrompt, config, onChunk, onD
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-    const lines = decoder.decode(value).split('\n').filter(Boolean)
-    for (const line of lines) {
-      try {
-        const json = JSON.parse(line)
-        const chunk = json.message?.content ?? ''
-        full += chunk
-        onChunk?.(chunk)
-      } catch {}
-    }
+    const chunk = decoder.decode(value)
+    full += chunk
+    onChunk?.(chunk)
   }
 
   onDone?.(full)

@@ -76,6 +76,27 @@ export default async function handler(req) {
 
     return streamAnthropic(upstream.body)
 
+  } else if (provider === 'local') {
+    const ollamaUrl = process.env.OLLAMA_BASE_URL
+    if (!ollamaUrl) return json(500, { error: 'Missing OLLAMA_BASE_URL env var' })
+
+    const upstream = await fetch(`${ollamaUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model || 'llama3.1:8b',
+        messages: formattedMessages,
+        stream: true,
+      }),
+    })
+
+    if (!upstream.ok || !upstream.body) {
+      const errText = await upstream.text().catch(() => '')
+      return json(upstream.status || 500, { error: 'Ollama upstream error', details: errText.slice(0, 800) })
+    }
+
+    return streamOllama(upstream.body)
+
   } else {
     return json(400, { error: `Unsupported provider: ${provider}` })
   }
@@ -104,6 +125,40 @@ function streamOpenAI(body) {
             try {
               const delta = JSON.parse(data)?.choices?.[0]?.delta?.content
               if (delta) controller.enqueue(encoder.encode(delta))
+            } catch { /* ignore malformed lines */ }
+          }
+        }
+      } catch (e) { controller.error(e) }
+      finally { try { reader.releaseLock() } catch {} }
+      controller.close()
+    },
+  })
+
+  return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } })
+}
+
+function streamOllama(body) {
+  const encoder = new TextEncoder()
+  const decoder = new TextDecoder()
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = body.getReader()
+      let buffer = ''
+      try {
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+          for (const line of lines) {
+            if (!line.trim()) continue
+            try {
+              const parsed = JSON.parse(line)
+              const chunk = parsed.message?.content ?? ''
+              if (chunk) controller.enqueue(encoder.encode(chunk))
+              if (parsed.done) { controller.close(); return }
             } catch { /* ignore malformed lines */ }
           }
         }
