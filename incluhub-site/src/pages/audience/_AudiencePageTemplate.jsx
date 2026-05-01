@@ -18,10 +18,10 @@ export default function AudiencePageTemplate({ page }) {
 
         {/* Hero */}
         <section style={{
-          minHeight: '100vh', display: 'flex', alignItems: 'center',
-          padding: 'clamp(120px, 15vh, 180px) clamp(24px, 6vw, 80px) 100px',
+          minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 'clamp(120px, 15vh, 180px) clamp(24px, 4vw, 60px) 100px',
           position: 'relative', overflow: 'hidden',
-          background: 'transparent',
+          background: 'transparent', textAlign: 'center',
         }}>
           <div style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
@@ -49,34 +49,20 @@ export default function AudiencePageTemplate({ page }) {
             </Link>
           </motion.div>
 
-          <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }}>
-            <motion.p className="section-label" {...reveal(0.05)}>{page.label}</motion.p>
-            <motion.h1 {...reveal(0.14)} style={{
+          <div style={{ width: '100%', position: 'relative', zIndex: 1 }}>
+            <motion.p className="section-label" {...reveal(0.05)}
+              style={{ marginBottom: 24, letterSpacing: '0.36em' }}>
+              {page.label}
+            </motion.p>
+            <motion.h1 {...reveal(0.12)} style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(4rem, 10vw, 9rem)',
+              fontSize: 'clamp(5.5rem, 16vw, 15rem)',
               fontWeight: 300, color: 'var(--color-ivory)',
-              lineHeight: 0.95, marginBottom: 36, letterSpacing: '0.04em',
+              lineHeight: 0.9, letterSpacing: '0.02em',
+              margin: 0,
             }}>
               {page.title}
             </motion.h1>
-            <motion.p {...reveal(0.3)} style={{
-              fontFamily: 'var(--font-display)', fontStyle: 'italic',
-              fontSize: 'clamp(1.1rem, 2.2vw, 1.4rem)',
-              color: 'var(--color-ivory-2)', lineHeight: 1.7,
-              fontWeight: 300, maxWidth: 540, marginBottom: 56,
-            }}>
-              {page.intro}
-            </motion.p>
-            <motion.div {...reveal(0.45)}>
-              <a href="#what-we-offer" style={{
-                fontFamily: 'var(--font-body)', fontSize: '0.65rem',
-                letterSpacing: '0.22em', textTransform: 'uppercase',
-                color: 'var(--color-bg)', background: 'var(--color-gold)',
-                padding: '14px 32px', borderRadius: 4, textDecoration: 'none',
-              }}>
-                Explore
-              </a>
-            </motion.div>
           </div>
         </section>
 
@@ -148,7 +134,7 @@ export default function AudiencePageTemplate({ page }) {
             }}>
               {page.cta}
             </h3>
-            <a href="mailto:contact@inclumodels.com" style={{
+            <Link to="/#contact" style={{
               fontFamily: 'var(--font-body)', fontSize: '0.65rem',
               letterSpacing: '0.22em', textTransform: 'uppercase',
               color: 'var(--color-ivory)', background: 'var(--color-burgundy)',
@@ -156,7 +142,7 @@ export default function AudiencePageTemplate({ page }) {
               display: 'inline-block',
             }}>
               Get in Touch
-            </a>
+            </Link>
           </div>
         </section>
 
