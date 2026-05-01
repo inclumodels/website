@@ -1,14 +1,7 @@
 {
-  "builds": [
-    {
-      "src": "incluhub-site/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "incluhub-site/dist" }
-    }
-  ],
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/incluhub-site/dist/index.html" }
+  "buildCommand": "cd incluhub-site && npm install && npm run build",
+  "outputDirectory": "incluhub-site/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
-
